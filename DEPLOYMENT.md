@@ -1,71 +1,72 @@
-# 部署到網路平台指南
+# 網路部署檢查清單
 
-## 🚀 推薦的免費部署平台
+## ✅ 部署兼容性檢查
 
-### 1. **Vercel（推薦）**
-- ✅ 自動 HTTPS
-- ✅ 完美支援 Vite
-- ✅ 自動設定 COOP/COEP 標頭
-- ✅ 零設定部署
+這個版本可以部署到網路上，以下是檢查結果：
 
-#### 部署步驟：
+### 1. 外部依賴
+- ✅ FFmpeg WASM 從 unpkg.com CDN 載入 (支援 CORS)
+- ✅ 使用 HTTPS CDN，支援現代瀏覽器
+- ✅ 無需額外的 npm 依賴安裝
+
+### 2. CORS 支援
+- ✅ unpkg.com 提供 `access-control-allow-origin: *`
+- ✅ 支援跨域資源共享
+- ✅ 無需特殊伺服器配置
+
+### 3. 瀏覽器安全要求
+- ✅ 使用 ES6 模組（現代瀏覽器支援）
+- ✅ HTTPS 要求已滿足（CDN 使用 HTTPS）
+- ⚠️ 需要 HTTPS 或 localhost 才能使用 WebAssembly
+
+### 4. 部署方式
+
+#### 🚀 靜態網站托管 (推薦)
+- **GitHub Pages**: ✅ 支援
+- **Netlify**: ✅ 支援  
+- **Vercel**: ✅ 支援
+- **Firebase Hosting**: ✅ 支援
+
+#### 🌐 共享主機
+- **一般 HTTP 主機**: ⚠️ 需要 HTTPS
+- **支援 HTTPS 的主機**: ✅ 支援
+
+### 5. 部署步驟
+
+1. **上傳檔案**: 只需上傳 `sprite-generator.html`
+2. **設定 HTTPS**: 確保網站使用 HTTPS
+3. **測試**: 在瀏覽器中開啟檔案
+
+### 6. 注意事項
+
+- ⚠️ **必須使用 HTTPS**: WebAssembly 需要安全上下文
+- ⚠️ **現代瀏覽器**: 需要支援 ES6 模組和 WebAssembly
+- ⚠️ **檔案大小**: 首次載入需下載約 25MB 的 FFmpeg 檔案
+
+## 🎯 快速部署指令
+
+### Netlify
 ```bash
-# 1. 安裝 Vercel CLI
-npm i -g vercel
-
-# 2. 建置專案
-npm run build
-
-# 3. 部署
-vercel
-
-# 或直接連結 GitHub 自動部署
+# 拖拽 sprite-generator.html 到 Netlify Drop
 ```
 
-### 2. **Netlify**
-- ✅ 自動 HTTPS
-- ✅ 拖拽部署
-- ✅ 支援自定義標頭
-
-#### 部署步驟：
+### Vercel
 ```bash
-# 1. 建置專案
-npm run build
-
-# 2. 上傳 dist 資料夾到 Netlify
-# 或連結 GitHub 倉庫
+npx vercel --prod
 ```
 
-### 3. **GitHub Pages**
-- ✅ 免費
-- ✅ 與 GitHub 整合
-- ⚠️ 需要手動設定標頭
-
-#### 部署步驟：
+### GitHub Pages
 ```bash
-# 1. 安裝 gh-pages
-npm install --save-dev gh-pages
-
-# 2. 建置並部署
-npm run build
-npx gh-pages -d dist
+git add sprite-generator.html
+git commit -m "Add sprite generator"
+git push origin main
 ```
 
-## 🔧 部署配置檔案
+## 🔧 測試部署
 
-### Vercel 配置 (vercel.json)
-### Netlify 配置 (_headers)
-### GitHub Actions 自動部署
-
-## 📱 部署後的優勢
-
-- **SharedArrayBuffer 問題解決** - HTTPS 環境自動支援
-- **更快的載入速度** - CDN 加速
-- **更好的相容性** - 標準生產環境
-- **分享連結** - 可以分享給其他人使用
-
-## 🎯 建議使用順序
-
-1. **Vercel** - 最簡單，零設定
-2. **Netlify** - 功能豐富，易用
-3. **GitHub Pages** - 如果已有 GitHub 倉庫
+部署後請測試：
+1. 頁面載入正常
+2. FFmpeg 初始化成功
+3. 影片上傳功能正常
+4. 雪碧圖生成功能正常
+5. WebP 轉換功能正常

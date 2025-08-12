@@ -2,26 +2,13 @@
   "name": "video-sprite-generator",
   "version": "1.0.0",
   "description": "使用 ffmpeg.wasm 將影片轉換成雪碧圖並轉換為 WebP 格式",
-  "main": "src/app.js",
+  "main": "sprite-generator.html",
   "scripts": {
-    "dev": "vite",
-    "dev:chrome": "vite & sleep 3 && open -a 'Google Chrome' --args --user-data-dir='/tmp/chrome-dev-session' --disable-web-security --enable-features=SharedArrayBuffer 'http://localhost:5173/'",
-    "dev:firefox": "vite & sleep 3 && open -a Firefox 'http://localhost:5173/'",
-    "dev:simple": "vite & sleep 3 && open 'http://localhost:5173/simple.html'",
-    "build": "vite build",
-    "preview": "vite preview",
-    "start": "./start.sh",
-    "deploy:vercel": "npm run build && vercel --prod",
-    "deploy:netlify": "npm run build && netlify deploy --prod --dir=dist",
-    "deploy:gh-pages": "npm run build && gh-pages -d dist"
+    "dev": "python3 -m http.server 8080",
+    "start": "python3 -m http.server 8080"
   },
-  "dependencies": {
-    "@ffmpeg/ffmpeg": "^0.12.10",
-    "@ffmpeg/util": "^0.12.1",
-    "vite": "^5.0.0"
-  },
-  "devDependencies": {
-    "vite": "^5.0.0"
-  },
+  "keywords": ["ffmpeg", "video", "spritesheet", "webp", "browser"],
+  "author": "",
+  "license": "MIT",
   "type": "module"
 }
