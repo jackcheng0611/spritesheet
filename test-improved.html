@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFmpeg 測試 - 改進版</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        .loading { 
+            background-color: #fff3cd; 
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .success { 
+            background-color: #d4edda; 
+            border-color: #28a745;
+            color: #155724;
+        }
+        .error { 
+            background-color: #f8d7da; 
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        button {
+            padding: 12px 24px;
+            margin: 10px 5px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #007bff;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        .details {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 FFmpeg 載入測試 - 改進版</h1>
+    
+    <div id="status" class="status loading">
+        準備開始測試...
+    </div>
+    
+    <div class="progress" id="progressContainer" style="display: none;">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+    
+    <div>
+        <button onclick="startTest()" id="testBtn">開始測試</button>
+        <button onclick="testBasic()" id="basicBtn">基礎測試</button>
+        <button onclick="clearLogs()" id="clearBtn">清除日誌</button>
+    </div>
+    
+    <div id="details" class="details">
+        <strong>瀏覽器資訊：</strong><br>
+        User Agent: <span id="userAgent"></span><br>
+        WebAssembly 支援: <span id="wasmSupport"></span><br>
+        SharedArrayBuffer 支援: <span id="sabSupport"></span><br>
+        記憶體: <span id="memory"></span><br>
+        <hr>
+        <div id="logs"></div>
+    </div>
+
+    <script type="module">
+        // 檢查基本支援
+        document.getElementById('userAgent').textContent = navigator.userAgent;
+        document.getElementById('wasmSupport').textContent = typeof WebAssembly !== 'undefined' ? '✅ 支援' : '❌ 不支援';
+        document.getElementById('sabSupport').textContent = typeof SharedArrayBuffer !== 'undefined' ? '✅ 支援' : '❌ 不支援';
+        document.getElementById('memory').textContent = navigator.deviceMemory ? `${navigator.deviceMemory}GB` : '未知';
+
+        let ffmpeg = null;
+        let isLoaded = false;
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.push(`[${timestamp}] ${message}`);
+            
+            const logsEl = document.getElementById('logs');
+            logsEl.innerHTML = logs.slice(-20).join('<br>'); // 只顯示最後20條
+            logsEl.scrollTop = logsEl.scrollHeight;
+            
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        function updateStatus(message, type = 'loading') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            log(message, type);
+        }
+
+        function updateProgress(percent) {
+            const progressBar = document.getElementById('progressBar');
+            const progressContainer = document.getElementById('progressContainer');
+            
+            if (percent > 0) {
+                progressContainer.style.display = 'block';
+                progressBar.style.width = percent + '%';
+            } else {
+                progressContainer.style.display = 'none';
+            }
+        }
+
+        window.clearLogs = function() {
+            logs = [];
+            document.getElementById('logs').innerHTML = '';
+        };
+
+        window.testBasic = async function() {
+            updateStatus('進行基礎測試...', 'loading');
+            
+            try {
+                // 測試網路連接
+                log('測試網路連接...');
+                const testUrl = 'https://unpkg.com/@ffmpeg/core@0.12.6/package.json';
+                const response = await fetch(testUrl);
+                if (response.ok) {
+                    log('✅ 網路連接正常');
+                } else {
+                    log(`❌ 網路連接異常: ${response.status}`);
+                }
+
+                // 測試瀏覽器功能
+                log('測試瀏覽器功能...');
+                if (typeof WebAssembly === 'undefined') {
+                    throw new Error('瀏覽器不支援 WebAssembly');
+                }
+                
+                if (typeof SharedArrayBuffer === 'undefined') {
+                    log('⚠️ 警告: SharedArrayBuffer 不可用，可能需要設定 COOP/COEP 標頭');
+                }
+
+                // 測試記憶體
+                if (navigator.deviceMemory && navigator.deviceMemory < 2) {
+                    log('⚠️ 警告: 裝置記憶體可能不足 (<2GB)');
+                }
+
+                updateStatus('基礎測試完成', 'success');
+                
+            } catch (error) {
+                updateStatus(`基礎測試失敗: ${error.message}`, 'error');
+            }
+        };
+
+        window.startTest = async function() {
+            if (isLoaded) {
+                updateStatus('FFmpeg 已經載入完成！', 'success');
+                return;
+            }
+
+            try {
+                updateStatus('開始載入 FFmpeg...', 'loading');
+                updateProgress(5);
+
+                // 動態導入
+                log('正在導入 FFmpeg 模組...');
+                const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+                const { toBlobURL } = await import('@ffmpeg/util');
+                updateProgress(10);
+
+                log('正在初始化 FFmpeg 實例...');
+                ffmpeg = new FFmpeg();
+                updateProgress(15);
+
+                // 設定事件監聽
+                ffmpeg.on('log', ({ message }) => {
+                    log(`FFmpeg: ${message}`);
+                });
+
+                ffmpeg.on('progress', ({ progress }) => {
+                    const percent = Math.round(progress * 100);
+                    updateProgress(20 + percent * 0.6); // 20-80% 範圍
+                    log(`處理進度: ${percent}%`);
+                });
+
+                // 嘗試多個 CDN
+                const cdnList = [
+                    'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd',
+                    'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd',
+                ];
+
+                let success = false;
+                
+                for (let i = 0; i < cdnList.length && !success; i++) {
+                    const baseURL = cdnList[i];
+                    log(`嘗試 CDN ${i + 1}/${cdnList.length}: ${baseURL}`);
+                    
+                    try {
+                        updateProgress(25 + i * 10);
+                        
+                        // 預先檢查檔案
+                        log('檢查核心檔案...');
+                        const coreResponse = await fetch(`${baseURL}/ffmpeg-core.js`);
+                        if (!coreResponse.ok) {
+                            throw new Error(`核心檔案不可用: ${coreResponse.status}`);
+                        }
+                        
+                        log('檢查 WASM 檔案...');
+                        const wasmResponse = await fetch(`${baseURL}/ffmpeg-core.wasm`);
+                        if (!wasmResponse.ok) {
+                            throw new Error(`WASM 檔案不可用: ${wasmResponse.status}`);
+                        }
+
+                        updateProgress(40 + i * 15);
+                        
+                        // 載入檔案
+                        log('載入核心檔案...');
+                        const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
+                        
+                        log('載入 WASM 檔案...');
+                        const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+
+                        updateProgress(70);
+                        
+                        // 初始化 FFmpeg
+                        log('初始化 FFmpeg...');
+                        await ffmpeg.load({
+                            coreURL,
+                            wasmURL,
+                        });
+
+                        success = true;
+                        log(`✅ 成功使用 CDN: ${baseURL}`);
+                        
+                    } catch (error) {
+                        log(`❌ CDN ${i + 1} 失敗: ${error.message}`);
+                        if (i === cdnList.length - 1) {
+                            throw error;
+                        }
+                    }
+                }
+
+                if (success) {
+                    isLoaded = true;
+                    updateProgress(100);
+                    updateStatus('FFmpeg 載入成功！🎉', 'success');
+                    log('🎉 FFmpeg 載入完成，可以開始處理影片了！');
+                    
+                    // 隱藏進度條
+                    setTimeout(() => updateProgress(0), 2000);
+                }
+
+            } catch (error) {
+                updateProgress(0);
+                updateStatus(`FFmpeg 載入失敗: ${error.message}`, 'error');
+                log(`❌ 最終錯誤: ${error.message}`);
+                
+                // 提供診斷建議
+                if (error.message.includes('SharedArrayBuffer')) {
+                    log('💡 建議: 嘗試使用 Chrome 或 Firefox 瀏覽器');
+                } else if (error.message.includes('fetch')) {
+                    log('💡 建議: 檢查網路連接或防火牆設定');
+                } else if (error.message.includes('timeout')) {
+                    log('💡 建議: 網路速度較慢，請重試或更換網路');
+                }
+            }
+        };
+
+        // 自動進行基礎測試
+        window.testBasic();
+    </script>
+</body>
+</html>
